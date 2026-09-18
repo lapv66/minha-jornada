@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Controle de Jornada</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2F5233">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg: #F3EFE2;
+    --bg-panel: #FFFDF8;
+    --ink: #23301F;
+    --ink-soft: #55604C;
+    --green: #2F5233;
+    --green-dark: #223D26;
+    --gold: #C9902E;
+    --gold-dark: #A6741E;
+    --rust: #8B3A2F;
+    --line: #DDD5C0;
+    --radius: 14px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body{
+    min-height: 100vh;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 16px 40px;
+  }
+
+  .wrap{ width:100%; max-width: 480px; }
+
+  header{
+    text-align:center;
+    padding: 6px 0 20px;
+    border-bottom: 2px solid var(--line);
+    margin-bottom: 22px;
+  }
+
+  .clock{
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--green-dark);
+    line-height: 1;
+  }
+
+  .date{
+    margin-top: 6px;
+    font-size: 17px;
+    color: var(--ink-soft);
+    text-transform: capitalize;
+  }
+
+  .titulo{
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+
+  .subtitulo{
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0 0 18px;
+  }
+
+  section.steps{
+    display:flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  button.step{
+    width:100%;
+    min-height: 92px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: inherit;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--green);
+    padding: 10px 16px;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 4px;
+    line-height: 1.25;
+    transition: transform .08s ease;
+  }
+  button.step:active{ transform: scale(0.97); }
+
+  button.step.locked{
+    background: #D8D2C1;
+    color: #8B8672;
+  }
+
+  button.step.done{
+    background: var(--bg-panel);
+    border: 3px solid var(--gold);
+    color: var(--ink);
+  }
+
+  button.step.done .hora{
+    font-size: 32px;
+    color: var(--gold-dark);
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  button.step .rotulo{ font-size: 20px; }
+
+  button.step.done .rotulo{
+    font-size: 15px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+
+  .painel{
+    background: var(--bg-panel);
+    border-radius: var(--radius);
+    border: 2px solid var(--line);
+    padding: 20px;
+    margin-bottom: 26px;
+  }
+
+  .painel .linha{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+  }
+
+  .painel .linha + .linha{ border-top: 1px solid var(--line); }
+
+  .painel .rotulo-meta{ font-size: 18px; font-weight: 600; color: var(--ink); }
+  .painel .valor-meta{ font-size: 30px; font-weight: 800; color: var(--green-dark); }
+
+  .painel .obs{
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .painel .vazio{
+    text-align:center;
+    font-size: 17px;
+    color: var(--ink-soft);
+    padding: 6px 0;
+  }
+
+  button.instalar{
+    width:100%;
+    min-height: 60px;
+    border-radius: var(--radius);
+    border: 2px solid var(--green);
+    background: var(--bg-panel);
+    color: var(--green-dark);
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  button.instalar:active{ transform: scale(0.98); }
+
+  .passos-instalar{
+    text-align: left;
+    font-size: 18px;
+    line-height: 1.5;
+    padding-left: 22px;
+    margin: 0;
+  }
+  .passos-instalar li{ margin-bottom: 12px; }
+
+  button.limpar{
+    width:100%;
+    min-height: 64px;
+    border-radius: var(--radius);
+    border: 2px solid var(--rust);
+    background: transparent;
+    color: var(--rust);
+    font-family: inherit;
+    font-size: 19px;
+    font-weight: 700;
+  }
+  button.limpar:active{ transform: scale(0.98); }
+
+  /* Overlay / modais */
+  .overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(35,48,31,0.55);
+    display:none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  .overlay.aberto{ display:flex; }
+
+  .modal{
+    background: var(--bg-panel);
+    border-radius: var(--radius);
+    padding: 26px 22px;
+    width:100%;
+    max-width: 420px;
+    text-align:center;
+  }
+
+  .modal p{
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 20px;
+    color: var(--ink);
+  }
+
+  .modal .botoes{
+    display:flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .modal button{
+    min-height: 68px;
+    border-radius: var(--radius);
+    border:none;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .modal .confirmar{ background: var(--green); color: #fff; }
+  .modal .apagar{ background: var(--rust); color: #fff; }
+  .modal .cancelar{ background: #EDE8D8; color: var(--ink); }
+
+  input[type="time"]{
+    width: 100%;
+    font-size: 40px;
+    font-weight: 800;
+    text-align:center;
+    padding: 16px 8px;
+    border-radius: var(--radius);
+    border: 3px solid var(--green);
+    background: #fff;
+    color: var(--ink);
+    font-family: inherit;
+  }
+
+  .rodape{
+    text-align:center;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="clock" id="relogio">--:--:--</div>
+    <div class="date" id="dataAtual"></div>
+  </header>
+
+  <button class="instalar" id="btnInstalar">📲 Criar atalho na tela inicial</button>
+
+  <div class="titulo">Minha jornada de hoje</div>
+  <div class="subtitulo">Toque em cada etapa e informe o horário em que ela aconteceu.</div>
+
+  <section class="steps">
+    <button class="step pending" id="btnInicio" data-passo="inicio" data-titulo="Início da jornada">
+      <span class="rotulo">Toque para registrar o início da jornada</span>
+    </button>
+
+    <button class="step locked" id="btnSaida" data-passo="saida" data-titulo="Saída para o intervalo" disabled>
+      <span class="rotulo">Toque para registrar a saída para o intervalo</span>
+    </button>
+
+    <button class="step locked" id="btnRetorno" data-passo="retorno" data-titulo="Retorno do intervalo" disabled>
+      <span class="rotulo">Toque para registrar o retorno do intervalo</span>
+    </button>
+  </section>
+
+  <div class="painel" id="painelMetas">
+    <div class="vazio">Registre o início da jornada para ver os horários</div>
+  </div>
+
+  <button class="limpar" id="btnLimpar">Limpar horários do dia</button>
+
+  <div class="rodape">Os horários ficam salvos neste aparelho até você limpar.</div>
+</div>
+
+<!-- Modal de horário -->
+<div class="overlay" id="overlayHora">
+  <div class="modal">
+    <p id="tituloModalHora">Horário</p>
+    <input type="time" id="inputHora">
+    <div class="botoes">
+      <button class="confirmar" id="btnConfirmarHora">Confirmar</button>
+      <button class="cancelar" id="btnCancelarHora">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de instalar -->
+<div class="overlay" id="overlayInstalar">
+  <div class="modal">
+    <p>Criar atalho na tela inicial</p>
+    <ol class="passos-instalar">
+      <li>Toque nos <strong>três pontinhos</strong> (⋮) no canto superior do navegador</li>
+      <li>Toque em <strong>"Adicionar à tela inicial"</strong></li>
+      <li>Toque em <strong>Adicionar</strong> para confirmar</li>
+    </ol>
+    <div class="botoes">
+      <button class="confirmar" id="btnFecharInstalar">Entendi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de limpar -->
+<div class="overlay" id="overlayLimpar">
+  <div class="modal">
+    <p>Apagar todos os horários de hoje?</p>
+    <div class="botoes">
+      <button class="apagar" id="btnConfirmarLimpar">Sim, limpar tudo</button>
+      <button class="cancelar" id="btnCancelarLimpar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CHAVE = 'jornada_diaria_v1';
+
+  function carregar(){
+    try{
+      var raw = localStorage.getItem(CHAVE);
+      if(!raw) return {};
+      var obj = JSON.parse(raw);
+      var out = {};
+      ['inicio','saida','retorno'].forEach(function(k){
+        if(obj[k]) out[k] = new Date(obj[k]);
+      });
+      var hoje = new Date().toDateString();
+      if(obj.dia && obj.dia !== hoje) return {};
+      return out;
+    }catch(e){ return {}; }
+  }
+
+  function salvar(){
+    var obj = { dia: new Date().toDateString() };
+    ['inicio','saida','retorno'].forEach(function(k){
+      if(estado[k]) obj[k] = estado[k].toISOString();
+    });
+    localStorage.setItem(CHAVE, JSON.stringify(obj));
+  }
+
+  var estado = carregar();
+  var passoAtual = null;
+
+  var elRelogio = document.getElementById('relogio');
+  var elData = document.getElementById('dataAtual');
+  var btnInicio = document.getElementById('btnInicio');
+  var btnSaida = document.getElementById('btnSaida');
+  var btnRetorno = document.getElementById('btnRetorno');
+  var painelMetas = document.getElementById('painelMetas');
+  var btnLimpar = document.getElementById('btnLimpar');
+
+  var overlayHora = document.getElementById('overlayHora');
+  var tituloModalHora = document.getElementById('tituloModalHora');
+  var inputHora = document.getElementById('inputHora');
+  var btnConfirmarHora = document.getElementById('btnConfirmarHora');
+  var btnCancelarHora = document.getElementById('btnCancelarHora');
+
+  var overlayLimpar = document.getElementById('overlayLimpar');
+  var btnConfirmarLimpar = document.getElementById('btnConfirmarLimpar');
+  var btnCancelarLimpar = document.getElementById('btnCancelarLimpar');
+
+  var btnInstalar = document.getElementById('btnInstalar');
+  var overlayInstalar = document.getElementById('overlayInstalar');
+  var btnFecharInstalar = document.getElementById('btnFecharInstalar');
+  var promptInstalacao = null;
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    promptInstalacao = e;
+  });
+
+  btnInstalar.addEventListener('click', function(){
+    if(promptInstalacao){
+      promptInstalacao.prompt();
+      promptInstalacao.userChoice.finally(function(){ promptInstalacao = null; });
+    } else {
+      overlayInstalar.classList.add('aberto');
+    }
+  });
+
+  btnFecharInstalar.addEventListener('click', function(){
+    overlayInstalar.classList.remove('aberto');
+  });
+
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function fmtHora(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function fmtHoraSeg(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+  var DIAS = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  function atualizarRelogio(){
+    var agora = new Date();
+    elRelogio.textContent = fmtHoraSeg(agora);
+    elData.textContent = DIAS[agora.getDay()] + ', ' + agora.getDate() + ' de ' + MESES[agora.getMonth()];
+  }
+
+  function rotuloDone(chave){
+    if(chave === 'inicio') return 'Início · toque para corrigir';
+    if(chave === 'saida') return 'Saída p/ intervalo · toque para corrigir';
+    if(chave === 'retorno') return 'Retorno do intervalo · toque para corrigir';
+  }
+
+  function renderizarBotao(btn, chave, permitido){
+    if(estado[chave]){
+      btn.className = 'step done';
+      btn.disabled = false;
+      btn.innerHTML = '<span class="hora">'+fmtHora(estado[chave])+'</span><span class="rotulo">'+rotuloDone(chave)+'</span>';
+    } else if(permitido){
+      btn.className = 'step pending';
+      btn.disabled = false;
+      btn.innerHTML = '<span class="rotulo">'+btn.querySelector('.rotulo').textContent.replace('  ',' ')+'</span>';
+    } else {
+      btn.className = 'step locked';
+      btn.disabled = true;
+    }
+  }
+
+  var ROTULOS_PENDENTE = {
+    inicio: 'Toque para registrar o início da jornada',
+    saida: 'Toque para registrar a saída para o intervalo',
+    retorno: 'Toque para registrar o retorno do intervalo'
+  };
+
+  function renderizarEstado(){
+    // Início: sempre liberado
+    if(estado.inicio){
+      btnInicio.className = 'step done';
+      btnInicio.innerHTML = '<span class="hora">'+fmtHora(estado.inicio)+'</span><span class="rotulo">'+rotuloDone('inicio')+'</span>';
+    } else {
+      btnInicio.className = 'step pending';
+      btnInicio.innerHTML = '<span class="rotulo">'+ROTULOS_PENDENTE.inicio+'</span>';
+    }
+    btnInicio.disabled = false;
+
+    // Saída: precisa do início
+    if(estado.saida){
+      btnSaida.className = 'step done';
+      btnSaida.innerHTML = '<span class="hora">'+fmtHora(estado.saida)+'</span><span class="rotulo">'+rotuloDone('saida')+'</span>';
+      btnSaida.disabled = false;
+    } else if(estado.inicio){
+      btnSaida.className = 'step pending';
+      btnSaida.innerHTML = '<span class="rotulo">'+ROTULOS_PENDENTE.saida+'</span>';
+      btnSaida.disabled = false;
+    } else {
+      btnSaida.className = 'step locked';
+      btnSaida.disabled = true;
+    }
+
+    // Retorno: precisa da saída
+    if(estado.retorno){
+      btnRetorno.className = 'step done';
+      btnRetorno.innerHTML = '<span class="hora">'+fmtHora(estado.retorno)+'</span><span class="rotulo">'+rotuloDone('retorno')+'</span>';
+      btnRetorno.disabled = false;
+    } else if(estado.saida){
+      btnRetorno.className = 'step pending';
+      btnRetorno.innerHTML = '<span class="rotulo">'+ROTULOS_PENDENTE.retorno+'</span>';
+      btnRetorno.disabled = false;
+    } else {
+      btnRetorno.className = 'step locked';
+      btnRetorno.disabled = true;
+    }
+
+    renderizarPainel();
+  }
+
+  function renderizarPainel(){
+    if(!estado.inicio){
+      painelMetas.innerHTML = '<div class="vazio">Registre o início da jornada para ver os horários</div>';
+      return;
+    }
+
+    var intervaloMs = 0;
+    var intervaloCompleto = false;
+    if(estado.saida && estado.retorno){
+      intervaloMs = estado.retorno.getTime() - estado.saida.getTime();
+      if(intervaloMs < 0) intervaloMs = 0;
+      intervaloCompleto = true;
+    }
+
+    var hora8 = new Date(estado.inicio.getTime() + 8*3600000 + intervaloMs);
+    var hora10 = new Date(estado.inicio.getTime() + 10*3600000 + intervaloMs);
+
+    var obs = intervaloCompleto
+      ? 'Já considera o intervalo registrado'
+      : (estado.saida ? 'Provisório — aguardando retorno do intervalo' : 'Provisório — intervalo ainda não descontado');
+
+    painelMetas.innerHTML =
+      '<div class="linha"><span class="rotulo-meta">Completa 8 horas às</span><span class="valor-meta">'+fmtHora(hora8)+'</span></div>' +
+      '<div class="linha"><span class="rotulo-meta">Completa 10 horas às</span><span class="valor-meta">'+fmtHora(hora10)+'</span></div>' +
+      '<div class="obs">'+obs+'</div>';
+  }
+
+  // Abrir modal de horário
+  [btnInicio, btnSaida, btnRetorno].forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(btn.disabled) return;
+      passoAtual = btn.getAttribute('data-passo');
+      tituloModalHora.textContent = btn.getAttribute('data-titulo');
+      var base = estado[passoAtual] || new Date();
+      inputHora.value = pad(base.getHours())+':'+pad(base.getMinutes());
+      overlayHora.classList.add('aberto');
+    });
+  });
+
+  btnCancelarHora.addEventListener('click', function(){
+    overlayHora.classList.remove('aberto');
+    passoAtual = null;
+  });
+
+  btnConfirmarHora.addEventListener('click', function(){
+    if(!passoAtual || !inputHora.value){
+      overlayHora.classList.remove('aberto');
+      return;
+    }
+    var partes = inputHora.value.split(':');
+    var d = new Date();
+    d.setHours(parseInt(partes[0],10), parseInt(partes[1],10), 0, 0);
+    estado[passoAtual] = d;
+    salvar();
+    overlayHora.classList.remove('aberto');
+    passoAtual = null;
+    renderizarEstado();
+  });
+
+  btnLimpar.addEventListener('click', function(){
+    overlayLimpar.classList.add('aberto');
+  });
+  btnCancelarLimpar.addEventListener('click', function(){
+    overlayLimpar.classList.remove('aberto');
+  });
+  btnConfirmarLimpar.addEventListener('click', function(){
+    estado = {};
+    localStorage.removeItem(CHAVE);
+    overlayLimpar.classList.remove('aberto');
+    renderizarEstado();
+  });
+
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 1000);
+  renderizarEstado();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
