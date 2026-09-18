@@ -4,13 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Controle de Jornada</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#2F5233">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
     --bg: #F3EFE2;
@@ -256,6 +249,14 @@
   .modal .apagar{ background: var(--rust); color: #fff; }
   .modal .cancelar{ background: #EDE8D8; color: var(--ink); }
 
+  .erro-hora{
+    color: var(--rust);
+    font-weight: 700;
+    font-size: 15px;
+    margin: 12px 0 0;
+    text-align: left;
+  }
+
   input[type="time"]{
     width: 100%;
     font-size: 40px;
@@ -318,9 +319,21 @@
   <div class="modal">
     <p id="tituloModalHora">Horário</p>
     <input type="time" id="inputHora">
+    <p class="erro-hora" id="erroHora" style="display:none;"></p>
     <div class="botoes">
       <button class="confirmar" id="btnConfirmarHora">Confirmar</button>
       <button class="cancelar" id="btnCancelarHora">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmar horário suspeito -->
+<div class="overlay" id="overlayConfirmarLongo">
+  <div class="modal">
+    <p id="textoConfirmarLongo"></p>
+    <div class="botoes">
+      <button class="confirmar" id="btnConfirmarLongoSim">Sim, está certo</button>
+      <button class="cancelar" id="btnConfirmarLongoNao">Não, corrigir</button>
     </div>
   </div>
 </div>
@@ -364,14 +377,12 @@
       ['inicio','saida','retorno'].forEach(function(k){
         if(obj[k]) out[k] = new Date(obj[k]);
       });
-      var hoje = new Date().toDateString();
-      if(obj.dia && obj.dia !== hoje) return {};
       return out;
     }catch(e){ return {}; }
   }
 
   function salvar(){
-    var obj = { dia: new Date().toDateString() };
+    var obj = {};
     ['inicio','saida','retorno'].forEach(function(k){
       if(estado[k]) obj[k] = estado[k].toISOString();
     });
@@ -392,12 +403,43 @@
   var overlayHora = document.getElementById('overlayHora');
   var tituloModalHora = document.getElementById('tituloModalHora');
   var inputHora = document.getElementById('inputHora');
+  var erroHora = document.getElementById('erroHora');
   var btnConfirmarHora = document.getElementById('btnConfirmarHora');
   var btnCancelarHora = document.getElementById('btnCancelarHora');
 
   var overlayLimpar = document.getElementById('overlayLimpar');
   var btnConfirmarLimpar = document.getElementById('btnConfirmarLimpar');
   var btnCancelarLimpar = document.getElementById('btnCancelarLimpar');
+
+  var overlayConfirmarLongo = document.getElementById('overlayConfirmarLongo');
+  var textoConfirmarLongo = document.getElementById('textoConfirmarLongo');
+  var btnConfirmarLongoSim = document.getElementById('btnConfirmarLongoSim');
+  var btnConfirmarLongoNao = document.getElementById('btnConfirmarLongoNao');
+  var pendente = null;
+
+  var LIMITE_ALERTA_MS = 16 * 3600000; // acima disso, pede confirmação
+
+  function formatarDuracao(ms){
+    var totalMin = Math.round(ms/60000);
+    var h = Math.floor(totalMin/60);
+    var m = totalMin % 60;
+    return h + 'h' + (m ? ' ' + pad(m) + 'min' : '');
+  }
+
+  function salvarPasso(passo, d){
+    estado[passo] = d;
+    salvar();
+    renderizarEstado();
+  }
+
+  btnConfirmarLongoSim.addEventListener('click', function(){
+    if(pendente){ salvarPasso(pendente.passo, pendente.data); pendente = null; }
+    overlayConfirmarLongo.classList.remove('aberto');
+  });
+  btnConfirmarLongoNao.addEventListener('click', function(){
+    pendente = null;
+    overlayConfirmarLongo.classList.remove('aberto');
+  });
 
   var btnInstalar = document.getElementById('btnInstalar');
   var overlayInstalar = document.getElementById('overlayInstalar');
@@ -539,6 +581,7 @@
       tituloModalHora.textContent = btn.getAttribute('data-titulo');
       var base = estado[passoAtual] || new Date();
       inputHora.value = pad(base.getHours())+':'+pad(base.getMinutes());
+      erroHora.style.display = 'none';
       overlayHora.classList.add('aberto');
     });
   });
@@ -548,19 +591,51 @@
     passoAtual = null;
   });
 
+  function mostrarErroHora(msg){
+    erroHora.textContent = msg;
+    erroHora.style.display = 'block';
+  }
+
   btnConfirmarHora.addEventListener('click', function(){
     if(!passoAtual || !inputHora.value){
       overlayHora.classList.remove('aberto');
       return;
     }
     var partes = inputHora.value.split(':');
-    var d = new Date();
-    d.setHours(parseInt(partes[0],10), parseInt(partes[1],10), 0, 0);
-    estado[passoAtual] = d;
-    salvar();
+    var hh = parseInt(partes[0],10);
+    var mm = parseInt(partes[1],10);
+    var d;
+    var referencia = null;
+
+    if(passoAtual === 'inicio'){
+      d = new Date();
+      d.setHours(hh, mm, 0, 0);
+    } else {
+      referencia = (passoAtual === 'saida') ? estado.inicio : estado.saida;
+      d = referencia ? new Date(referencia) : new Date();
+      d.setHours(hh, mm, 0, 0);
+      // Se o horário digitado for igual ou anterior ao da etapa anterior,
+      // entende que a jornada passou da meia-noite e avança um dia.
+      if(referencia && d.getTime() <= referencia.getTime()){
+        d.setDate(d.getDate() + 1);
+      }
+    }
+
     overlayHora.classList.remove('aberto');
+
+    if(referencia){
+      var elapsedMs = d.getTime() - referencia.getTime();
+      if(elapsedMs > LIMITE_ALERTA_MS){
+        pendente = { passo: passoAtual, data: d };
+        textoConfirmarLongo.textContent = 'Entre ' + fmtHora(referencia) + ' e ' + fmtHora(d) + ' passaram ' + formatarDuracao(elapsedMs) + '. Confirma que esse horário está certo?';
+        overlayConfirmarLongo.classList.add('aberto');
+        passoAtual = null;
+        return;
+      }
+    }
+
+    salvarPasso(passoAtual, d);
     passoAtual = null;
-    renderizarEstado();
   });
 
   btnLimpar.addEventListener('click', function(){
@@ -579,12 +654,6 @@
   atualizarRelogio();
   setInterval(atualizarRelogio, 1000);
   renderizarEstado();
-
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('sw.js').catch(function(){});
-    });
-  }
 })();
 </script>
 
