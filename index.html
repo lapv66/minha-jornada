@@ -342,7 +342,7 @@
 <div class="overlay" id="overlayInstalar">
   <div class="modal">
     <p>Criar atalho na tela inicial</p>
-    <ol class="passos-instalar">
+    <ol class="passos-instalar" id="passosInstalarLista">
       <li>Toque nos <strong>três pontinhos</strong> (⋮) no canto superior do navegador</li>
       <li>Toque em <strong>"Adicionar à tela inicial"</strong></li>
       <li>Toque em <strong>Adicionar</strong> para confirmar</li>
@@ -444,7 +444,20 @@
   var btnInstalar = document.getElementById('btnInstalar');
   var overlayInstalar = document.getElementById('overlayInstalar');
   var btnFecharInstalar = document.getElementById('btnFecharInstalar');
+  var passosInstalarLista = document.getElementById('passosInstalarLista');
   var promptInstalacao = null;
+
+  function ehIOS(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  var PASSOS_ANDROID = '<li>Toque nos <strong>três pontinhos</strong> (⋮) no canto superior do navegador</li>'
+    + '<li>Toque em <strong>"Adicionar à tela inicial"</strong></li>'
+    + '<li>Toque em <strong>Adicionar</strong> para confirmar</li>';
+
+  var PASSOS_IOS = '<li>Toque no ícone de <strong>compartilhar</strong> (quadrado com seta pra cima), na parte de baixo da tela do Safari</li>'
+    + '<li>Role as opções e toque em <strong>"Adicionar à Tela de Início"</strong></li>'
+    + '<li>Toque em <strong>Adicionar</strong>, no canto superior</li>';
 
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
@@ -456,6 +469,7 @@
       promptInstalacao.prompt();
       promptInstalacao.userChoice.finally(function(){ promptInstalacao = null; });
     } else {
+      passosInstalarLista.innerHTML = ehIOS() ? PASSOS_IOS : PASSOS_ANDROID;
       overlayInstalar.classList.add('aberto');
     }
   });
